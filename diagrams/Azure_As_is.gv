@@ -1,0 +1,158 @@
+digraph account_relationships {
+    rankDir = LR;
+    label="tenant"
+
+    subgraph cluster_sg_taskcluster {
+        label = "Groups, Apps, Permissions"
+        RelOps [label="RelOps\nSG", shape=component,
+            color=red
+            fontcolor=red]
+
+        user_coop [label="coop"
+            color=pink
+            fontcolor=pink
+        ]
+        user_wcosta [label="wcosta"
+            color=pink
+            fontcolor=pink
+        ]
+        azure_provider_bstackdev [ label="azure provider\nbstack dev",
+            color=cyan,
+            fontcolor=cyan,
+            shape="parallelogram"]
+        azure_provider_test [ label="azure provider\ntest",
+            color=cyan,
+            fontcolor=cyan,
+            shape="parallelogram"]
+        cloudops_graphana_app [ label="cloudops\ngraphana",
+            color=cyan,
+            fontcolor=cyan,
+            shape="parallelogram"]
+
+        Taskcluster [label="Taskcluster\nSG", shape=component,
+            color=red
+            fontcolor=red]
+
+
+            rankDir = LR
+            node [shape="underline"]
+            read [label="reader"]
+            storage_account_contributor [label="storage\naccount\ncontributor"]
+            storage_queue_data_reader [label="queue\ndata reader"]
+            storage_queue_data_contributor [label="queue data\ncontributor"]
+            storage_blob_data_reader [label="blob\ndata reader"]
+            storage_blob_data_contributor [label="blob data\ncontributor"]
+            reader_and_data_access [label="reader and\ndata access"]
+            worker_manager_azure_provider [label="Worker Manager\nAzure Provider"]
+        cloudops_graphana_app -> read
+        azure_provider_test -> worker_manager_azure_provider
+        azure_provider_bstackdev -> worker_manager_azure_provider
+        Taskcluster -> read
+        Taskcluster -> storage_queue_data_reader
+        Taskcluster -> storage_blob_data_reader
+        Taskcluster -> reader_and_data_access
+
+        user_coop -> storage_account_contributor
+        user_coop -> storage_blob_data_contributor
+        user_coop -> storage_blob_data_reader
+        user_coop -> storage_queue_data_contributor
+
+        user_wcosta -> storage_account_contributor
+        user_wcosta -> storage_blob_data_contributor
+        user_wcosta -> storage_blob_data_reader
+        user_wcosta -> storage_queue_data_contributor
+    }
+
+    subgraph cluster_subscriptions {
+        label="Subscriptions";
+        subgraph cluster_sub_fxcistage {
+            fontcolor=purple
+            color = purple
+            label="Firefox CI Staging";
+            // subscriptions contain security groups
+            // subscriptions contain resource groups
+            subgraph cluster_rg_fxcistage {
+                fontcolor=blue
+                color = blue
+                label="cloudopstage"
+                // resource groups contain resources
+                node[color="green", shape="cylinder"]
+                cloudopstage
+            }
+        }
+        subgraph cluster_sub_fxciprod {
+            fontcolor=purple
+            color = purple
+            label="Firefox CI Production"
+            subgraph cluster_rg_communitytc {
+                fontcolor=blue
+                color = blue
+                label="communitytc"
+                // resource groups contain resources
+                communitytc [color="green", shape="cylinder"]
+            }
+            subgraph cluster_rg_firefoxcitc {
+                fontcolor=blue
+                color = blue
+                label="firefoxcitc"
+                // resource groups contain resources
+                firefoxcitc [color="green", shape="cylinder"]
+            }
+        }
+        subgraph cluster_sub_tcdev {
+            fontcolor=purple
+            color = purple
+            label="Taskcluster Dev"
+            subgraph cluster_rg_Default_Storage_WestUS {
+                fontcolor=blue
+                color = blue
+            // resource groups contain resources
+            taskclusterauthv1 [color="green", shape="cylinder"]
+            tcterraformstate [color="green", shape="cylinder"]
+            }
+        }
+    }
+
+    // link perms to resource
+    read -> cloudopstage
+    storage_queue_data_reader -> cloudopstage
+    storage_blob_data_reader -> cloudopstage
+    reader_and_data_access -> cloudopstage
+
+    read -> communitytc
+
+    read -> firefoxcitc
+
+    read -> taskclusterauthv1
+    worker_manager_azure_provider -> taskclusterauthv1
+
+    read -> tcterraformstate
+    worker_manager_azure_provider -> tcterraformstate
+    storage_account_contributor -> tcterraformstate
+    storage_blob_data_contributor -> tcterraformstate
+    storage_blob_data_reader -> tcterraformstate
+    storage_queue_data_contributor -> tcterraformstate
+
+    subgraph cluster_taskcluster {
+        rankDir=LR
+        label="Taskcluster SG"
+        style=rounded
+        color=red
+        fontcolor=red
+        node[shape=record, color=pink, fontcolor=pink]
+        tc_members [label="
+              <pmoore>pmoore
+            | <dustin>dustin
+            | <coop>coop
+            | <bstack>bstack
+            | <edunham>edunham
+            | <bpitts>bpitts
+            | <ajvb>ajvb
+            | <wcosta>wcosta
+            | <hassan>hassan
+            | <klibby>klibby
+            | <hwine>hwine"]
+    }
+    tc_members:pmoore -> Taskcluster [color=pink style=dashed penwidth=7 dir=none]
+
+}

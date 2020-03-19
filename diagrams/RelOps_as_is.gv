@@ -1,0 +1,35 @@
+
+        subgraph cluster_sub_fxciworkers {
+            fontcolor=purple
+            color = purple
+            label="Firefox CI Workers";
+            // subscriptions contain security groups
+            // subscriptions contain resource groups
+            subgraph cluster_rg_fxciworkers {
+                fontcolor=blue
+                color = blue
+                label="UNKNOWN"
+                // resource groups contain resources
+                node[color="green", shape="cylinder"]
+                UNKNOWN [color=red style=dashed shape=diamond]
+            }
+        }
+    subgraph cluster_relops {
+        rankDir=LR
+        label="RelOps SG"
+        style=rounded
+        color=red
+        fontcolor=red
+        node[shape=record, color=pink, fontcolor=pink]
+        relops_members [label="
+              <q>q
+            | <klibby>klibby
+            | <dhouse>dhouse
+            | <jwatkins>jwatkins
+            | <mcornmesser>mcornmesser
+            | <rthijssen>rthijssen
+            | <hwine>hwine
+            | <aerickson>aerickson
+            "]
+    }
+    relops_members:hwine -> RelOps [color=pink style=dashed penwidth=7 dir=none]
