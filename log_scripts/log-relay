@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+import asyncio
+import os
+import sys
+from pprint import pprint
+
+from azure.eventhub.aio import EventHubConsumerClient
+# from gcloud import datastore
+
+AZURE_CONNECTION_STRING = os.environ["AZURE_CONNECTION_STRING"]
+EVENTHUB_NAME = os.environ['EVENTHUB_NAME']
+GCP_CREDS = os.environ['GCP_CREDS']
+LOG_NAME = os.environ['LOG_NAME']
+
+gcp_logger = None
+
+import google
+import google.cloud
+from google.cloud import logging
+
+# google_cloud_logging.write("test messgae")
+
+
+
+counter = 0
+
+async def on_event(partition_context, event):
+    global counter
+    counter += 1
+    print("{:3d} Received event from partition: {}.".format(counter, partition_context.partition_id))
+    # pprint(event)
+    # log it
+    global gcp_logger
+    gcp_logger.log_text(str(event))
+    gcp_logger.log_struct(event.body_as_json())
+    if counter >= 1: raise SystemExit(-33)
+
+
+async def read_events():
+    client = EventHubConsumerClient.from_connection_string(
+        conn_str=AZURE_CONNECTION_STRING,
+        consumer_group="$default",
+        eventhub_name=EVENTHUB_NAME
+    )
+    async with client:
+        await client.receive(
+            on_event=on_event,
+            # on_error=on_error,
+            # on_partition_close=on_partition_close,
+            # on_partition_initialize=on_partition_initialize,
+            starting_position="-1",  # "-1" is from the beginning of the partition.
+        )
+
+
+def main(args):
+    print(args)
+
+    # log into GCP
+    global gcp_logger
+    gcp_client = logging.Client.from_service_account_json(GCP_CREDS)
+    gcp_logger = gcp_client.logger(LOG_NAME)
+    t = gcp_logger.log_text("test message 3")
+
+    # Azure Event Hub is the driver
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_until_complete(read_events())
+    except (SystemExit, KeyboardInterrupt):
+        pass
+    finally:
+        loop.stop()
+        loop.close()
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
+
