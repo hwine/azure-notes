@@ -39,7 +39,7 @@ async def on_event(partition_context, event):
     global gcp_logger
     gcp_logger.log_text(str(event))
     gcp_logger.log_struct(event.body_as_json())
-    if counter >= 1: raise SystemExit(-33)
+#    if counter >= 1: raise SystemExit(-33)
 
 
 async def read_events():
