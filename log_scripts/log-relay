@@ -8,6 +8,7 @@
 import asyncio
 import os
 import sys
+import time
 from pprint import pprint
 
 from azure.eventhub.aio import EventHubConsumerClient
@@ -28,18 +29,38 @@ from google.cloud import logging
 
 
 
+# Development hack - set max_count to a non-zero value to only process
+# that many events
+max_count = 0
 counter = 0
+
+def iso_time():
+    return time.strftime("%Y%m%dT%H%M%SZ",time.gmtime())
+
+def debug_it(t):
+    print("\nType: {}".format(type(t)))
+    pprint(t)
+    print('-' * 20)
 
 async def on_event(partition_context, event):
     global counter
-    counter += 1
-    print("{:3d} Received event from partition: {}.".format(counter, partition_context.partition_id))
-    # pprint(event)
+
     # log it
+    counter += 1
+    event_as_dict = event.body_as_json()
+    num_entries = len(event_as_dict["records"])
+    times = event_as_dict["records"][0]["time"]
+    print("{} {:3d} Received event from partition: {}; message of {} "
+                "records sent {}.".format(iso_time(), counter,
+                partition_context.partition_id, num_entries, times))
+
+    # relay it
     global gcp_logger
-    gcp_logger.log_text(str(event))
-    gcp_logger.log_struct(event.body_as_json())
-#    if counter >= 1: raise SystemExit(-33)
+    gcp_logger.log_struct(event_as_dict)
+
+    # debug code below
+    global max_count
+    if max_count and counter >= max_count: raise SystemExit(-33)
 
 
 async def read_events():
@@ -51,15 +72,35 @@ async def read_events():
     async with client:
         await client.receive(
             on_event=on_event,
-            # on_error=on_error,
-            # on_partition_close=on_partition_close,
-            # on_partition_initialize=on_partition_initialize,
+            on_error=on_error,
+            on_partition_close=on_partition_close,
+            on_partition_initialize=on_partition_initialize,
             starting_position="-1",  # "-1" is from the beginning of the partition.
         )
 
 
+async def on_partition_initialize(partition_context):
+    print("Partition: {} has been initialized.".format(partition_context.partition_id))
+
+
+async def on_partition_close(partition_context, reason):
+    print("{} Partition: {} has been closed, reason for closing: {}.".format(iso_time(), 
+        partition_context.partition_id,
+        reason
+    ))
+
+
+async def on_error(partition_context, error):
+    if partition_context:
+        print("{} An exception: {} occurred during receiving from Partition: {}.".format(iso_time(), 
+            partition_context.partition_id,
+            error
+        ))
+    else:
+        print("{} An exception: {} occurred during the load balance process.".format(iso_time(), error))
+
 def main(args):
-    print(args)
+    print("{} {}".format(iso_time(), args))
 
     # log into GCP
     global gcp_logger
