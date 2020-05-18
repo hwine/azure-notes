@@ -50,7 +50,7 @@ async def on_event(partition_context, event):
     event_as_dict = event.body_as_json()
     num_entries = len(event_as_dict["records"])
     times = event_as_dict["records"][0]["time"]
-    print("{} {:3d} Received event from partition: {}; message of {} "
+    print("{} {:3d} Received event from partition: {}; message of {:2d} "
                 "records sent {}.".format(iso_time(), counter,
                 partition_context.partition_id, num_entries, times))
 
